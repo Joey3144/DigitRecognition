@@ -1,30 +1,19 @@
 ###   數字辨識   ###
 
-
 from datetime import datetime # 計算runtime
 StartTime = datetime.now() # 開始時間
 import cv2 # 做圖片處理
 import numpy as np # 產生陣列
 import PIL # 做圖片處理
-import xlwt # 寫excel
 
-# excel欄位
-workbook = xlwt.Workbook("data.xls")
-worksheet = workbook.add_sheet("test")
-worksheet.write(0,0,"x軸")
-worksheet.write(0,1,"y軸")
-worksheet.write(0,2,"z軸")
-worksheet.write(0,3,"A基站")
-worksheet.write(0,4,"B基站")
-worksheet.write(0,5,"C基站")
-
-# 分割線
+# 圖片分割線
 separatedline = 44 # 距離左邊多少 
 
 # 圖片的數字
 testlist= ["94701912961","73402011085","20440229967","113601810777","7470111253","7460111260","0450312158","11608108113","194102013379","14602911966","1645049859","164301210465","83802211874","2400612066","1360012176","1340211879","19430199965","34490448767","56500637077","215002810257","06004813038","37106813830","08106914426","145302010750","57450695993","901008222140","961009222143","870010138149","81600886879","2430311762","253601514276","306905015921","856804621718","76102712725","28520318956","614407360101","692205945107","58370637183","20370816771","123650392396","727505617017","376403514822","94802310857","37510488565","105202711750","485503717430","696704217124","385201213448","33420347974","28480299859","105803513525","336904818315","275502716351","55402910745","34330388294","41430488283","43370468588","35340368586","591308176130","50380728497","502205672108","633808167101","44280447496","493605676","50350547191","846101025693","732706942114","883909140116","341403091121","5390512870","8270010596","2190512190","121304107115","148022105119","149025108110","162501510481","9350413181","21210209994","202001699104","7330711778","5240312598","21300139387","5320312385","241501492109","30420669674","622107461134","1071011643168","871308637136","45330427984","1312040112121","5230312783","619011135105","5270112882","10300310975","115405814065","154603413374","923011105100","43701413264","184002014573","43902411579"]
 
-
+# 保存紀錄
+savetxt = open('output.txt',"a") # 打開用來儲存辨識數字的txt檔案
 
 #########################  訓練模型  ################################ 
 
@@ -34,16 +23,22 @@ responses = responses.reshape((responses.size,1)) # 將使用者按下的數字�
 model = cv2.ml.KNearest_create() # 創建模型
 model.train(samples,cv2.ml.ROW_SAMPLE,responses) # 訓練模型
 
-
+val1 = []
+val2 = []
+val3 = []
+val4 = []
+val5 = []
+val6 = []
 
 ########################## 處理 + 辨識圖片  ################################
 
 loop = 1 # 迴圈
 
 while True:
-
+    
     if loop == 101: # 終止條件
         break        
+    
     
     
     ###   讀取 + 圖片處理   ###
@@ -77,8 +72,10 @@ while True:
             
         lastval2 = x # 將上一個矩形的x保存下來
         
+        
     
-    ###   判斷數字與分割線的位置###
+    ###   判斷數字與分割線的位置   ###
+    
     s1 = 0
     s2 = 0
     s3 = 0
@@ -100,7 +97,11 @@ while True:
             s5+=1
         elif separatedline*5+4 < x :
             s6+=1                
-    space = [s1,s1+s2,s1+s2+s3,s1+s2+s3+s4,s1+s2+s3+s4+s5,s1+s2+s3+s4+s5+s6]
+            
+    space = [s1,s1+s2,s1+s2+s3,s1+s2+s3+s4,s1+s2+s3+s4+s5,s1+s2+s3+s4+s5+s6] # 從左到右數字出現數累加
+    
+    
+    
     ###   將上面的矩陣當作分割圖片的依據，並將分割的圖片貼到新圖片上   ###
     
     loop2 = 1 # 給圖片命名用的
@@ -157,7 +158,7 @@ while True:
     
     lastxw2 = 0 # 上一個矩形的w+x
     loop3 = 1 # 給圖片命名用的
-    final= [] # 用來儲存數字的矩陣
+    string2 = "" # 儲存數字的新字串
     
     for cnt in reversed(contours):
         [x,y,w,h] = cv2.boundingRect(cnt)
@@ -172,24 +173,10 @@ while True:
             renum = np.float32(renum)
             retval, results, neigh_resp, dists = model.findNearest(renum, k = 1) # 找最近的數字
             string = str(int( (results[0][0]) ))
-            final.append(string) # 把辨識的數字加到矩陣當中
+            string2 += string # 把辨識的數字加到新字串中當中
             loop3 += 1
     
-    
-    ###   保存結果   ###
-    savetxt = open('output.txt',"a") # 打開用來儲存辨識數字的txt檔案
-    
-    for c in final: 
-        savetxt.write(c) # 將數值寫入txt中
-    savetxt.write("\n") # 換行
-    savetxt.close() # 關閉txt
-    
-    
-    ###   將結果轉成字串   ###
-    string2 = ""
-    for o in final:
-        string2 += o        
-    
+             
     
     ###   判斷結果與實際數字是不是一樣   ###
     if string2 != testlist[loop-1]:
@@ -204,8 +191,9 @@ while True:
     first3 = True
     first4 = True
     first5 = True
-    
     sepstring = ""
+    
+
     
     for k in string2:
         
@@ -215,15 +203,15 @@ while True:
             
         elif space[0] <= count3 < space[1] :
             if first1 == True:
-                worksheet.write(loop,0,sepstring) # y x (0,0)開始
+                savetxt.write("x軸:" + ((3-len(sepstring))*"0"+sepstring).rjust(4) + "\n")
                 first1 = False
                 sepstring = ""
             sepstring += k
             count3+=1
             
         elif space[1] <= count3 < space[2] :
-            if first2 == True:
-                worksheet.write(loop,1,sepstring) # y x (0,0)開始
+            if first2 == True:                
+                savetxt.write("y軸:" + ((3-len(sepstring))*"0"+sepstring).rjust(4) + "\n")
                 first2 = False
                 sepstring = ""
             sepstring += k
@@ -231,7 +219,7 @@ while True:
             
         elif space[2] <= count3 < space[3] :
             if first3 == True:
-                worksheet.write(loop,2,sepstring) # y x (0,0)開始
+                savetxt.write("z軸:" + ((3-len(sepstring))*"0"+sepstring).rjust(4) + "\n")
                 first3 = False
                 sepstring = ""
             sepstring += k
@@ -239,7 +227,7 @@ while True:
             
         elif space[3] <= count3 < space[4] :
             if first4 == True:
-                worksheet.write(loop,3,sepstring) # y x (0,0)開始
+                savetxt.write("A站:" + ((3-len(sepstring))*"0"+sepstring).rjust(4) + "\n")
                 first4 = False
                 sepstring = ""
             sepstring += k
@@ -247,16 +235,16 @@ while True:
             
         elif space[4] <= count3 < space[5] :
             if first5 == True:
-                worksheet.write(loop,4,sepstring) # y x (0,0)開始
+                savetxt.write("B站:" + ((3-len(sepstring))*"0"+sepstring).rjust(4) + "\n")
                 first5 = False
                 sepstring = ""
             sepstring += k
             count3+=1
-    worksheet.write(loop,5,sepstring) # y x (0,0)開始
+    savetxt.write("C站:" + ((3-len(sepstring))*"0"+sepstring).rjust(4) + "\n")
 
-    workbook.save("data.xls")
-    
     
     loop+=1 # 程式迴圈+1  
-    #print (datetime.now() - StartTime) # 顯示總時間
-    # time.sleep(1)
+    print (datetime.now() - StartTime) # 顯示總時間
+    #time.sleep(1)
+
+savetxt.close() # 關閉txt
